@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[function() {
+  /* widget controller */
+  var c = this;
+	
+	//function to update note
+	c.updateNote = function() {
+		c.server.get({
+			action:			'updateNote',
+			noteID:			c.data.noteID,
+			noteTitle:	c.data.title,
+			noteBody:		c.data.note
+		}).then(function(){
+			//Since we updated a note, let's inform the list to reflect change in the single note
+			$rootScope.$emit('updateList', {'noteID': c.data.noteID});
+		});
+	}
+	
+	//Event handler emitted from list widget when user clicked on note in list
+	$rootScope.$on('selectNote', function(event, data){
+		c.server.get({
+			//User clicked on a note in list so execute ajax call to server to retrieve note from database
+			action: 'getNote',
+			noteID: $rootScope.noteID
+		}).then(function(r){
+			//returned from ajax call so update data object for list widget
+			c.data.noteID	= r.data.note.sys_id;
+			c.data.number	= r.data.note.number;
+			c.data.title	= r.data.note.title;
+			c.data.note		= r.data.note.note;
+		});
+	});
+}
+]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.info { font-size:10px; }
+.mt50 { margin-top:50px; } 
+.mt10 { margin-top:10px; }
+.fl { float:left; }
+.fr { float:right; }
+.inline { display:inline-block; }
+</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>notes_body</id>
+        <internal>false</internal>
+        <link/>
+        <name>Notes Body</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function() {
+	/* populate the 'data' object */
+	/* e.g., data.table = $sp.getValue('table'); */
+
+	if(input && input.noteID) {
+		var _gr = new GlideRecord('x_snc_createnotes_note');
+		
+		if(_gr.get(input.noteID)) {
+			if(input.action == 'getNote') {
+				data.note = {};
+				data.note.sys_id	= _gr.sys_id.toString();
+				data.note.number	= _gr.number.toString();
+				data.note.title		= _gr.title.toString();
+				data.note.note		= _gr.note.toString();
+				//$sp.getRecordValues(data.note, _gr, "title, note, sys_id");
+			}		
+			else if(input.action == 'updateNote') {
+				console.log('Ready to persist note: ' + input.noteID);
+				_gr.title	= input.noteTitle;
+				_gr.note	= input.noteBody;
+				_gr.update();
+			}
+		}
+	}
+})();
+]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2018-02-18 18:02:05</sys_created_on>
+        <sys_customer_update>false</sys_customer_update>
+        <sys_id>d93d8fea0fd8130075b80cbce1050e46</sys_id>
+        <sys_mod_count>85</sys_mod_count>
+        <sys_name>Notes Body</sys_name>
+        <sys_package display_value="CreateNotes" source="x_snc_createnotes">df5fd9a5090232007f44e1046c8ff69f</sys_package>
+        <sys_policy/>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="CreateNotes">df5fd9a5090232007f44e1046c8ff69f</sys_scope>
+        <sys_update_name>sp_widget_d93d8fea0fd8130075b80cbce1050e46</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2018-02-21 15:35:29</sys_updated_on>
+        <template><![CDATA[
+<div class="panel panel-default" ng-show="c.data.noteID">
+  <div class="panel-heading clearfix">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="inline fl info">(Number:  {{c.data.number}})</div>
+        <div class="inline fr info">(Note ID:  {{c.data.noteID}})</div>
+        <input class="form-control" id="note-title" ng-model="c.data.title" 
+               ng-change="c.updateNote()" ng-model-options="{debounce:1000}" />
+      </div>
+    </div>
+  </div>
+  <div class="panel-body">
+    <textarea class="form-control" id="note-body" ng-model="c.data.note" 
+              ng-change="c.updateNote()" ng-model-options="{debounce:1000}" ></textarea>
+  </div>
+</div>
+<div class="mt50 text-center text-uppercase font-weight-bold" ng-show="!c.data.noteID">
+  Note Shows Here
+</div>
+  ]]></template>
+    </sp_widget>
+</record_update>

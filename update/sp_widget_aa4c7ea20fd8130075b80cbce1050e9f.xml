@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[function() {
+	/* widget controller */
+	var c					= this;
+	c.sort_order	= 'ASC';
+
+	//function called when user clicks on note in list
+	c.selectItem = function(pNoteID) {
+		//var _id = c.data.notes[pIndex].sys_id;
+		console.log('retrieve: ' + pNoteID);
+		$rootScope.noteID = pNoteID;
+		$rootScope.$emit('selectNote', null);
+	}
+
+	//Event handler invoked when Note Body widget emits event after note is updated from Body widget
+	$rootScope.$on('updateList', function(event, data){
+		//get data from server/db for the single note that was updated		
+		var _noteID = (data && data.noteID) ? data.noteID : null;
+		c.server.get({
+			'sort_order': c.sort_order,
+			'noteID':			_noteID
+		}).then(function(r){
+			//Back from ajax call
+
+			if(_noteID) {
+				for(var _i in c.data.notes) {
+					//loop through array of notes on controller and find the element needed to be updated
+					if(c.data.notes[_i].sys_id == _noteID) {
+						c.data.notes[_i].title	= r.data.notes[0].title;
+						c.data.notes[_i].note		= r.data.notes[0].note;
+					}
+				}	
+
+			}
+			else {
+				//User clicked sort button so update all notes in list
+				for(var _j in r.data.notes) {
+					c.data.notes[_j].sys_id	= r.data.notes[_j].sys_id;
+					c.data.notes[_j].number	= r.data.notes[_j].number;
+					c.data.notes[_j].title	= r.data.notes[_j].title;
+					c.data.notes[_j].note		= r.data.notes[_j].note;
+				}
+			}
+		});
+	});
+
+	c.toggleSortOrder = function() {
+		c.sort_order = (c.sort_order == 'ASC') ? 'DESC' : 'ASC';
+		$rootScope.$emit('updateList', null);
+	}	
+}
+]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.hand { cursor:pointer; } 
+.small { font-size:12px; }
+</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>notes_list</id>
+        <internal>false</internal>
+        <link/>
+        <name>Notes List</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function() {
+	/* populate the 'data' object */
+	/* e.g., data.table = $sp.getValue('table'); */
+	
+	//Get email of current user
+	var _gr = new GlideRecord('sys_user');
+		_gr.get(gs.getUserID());
+	
+  //set header variables
+	data.header = { 
+		'owner_name':			gs.getUser().getDisplayName(),
+		'owner_email':		_gr.email.toString(),
+		'owner_initials':	SarUtil.getUserInitials(gs.getUserID())
+	};
+	
+	//Build note array of individual note objects
+	data.notes			= [];
+	var _maxLength	= 30;
+
+	//Get notes belonging to current user
+	_gr = new GlideRecord('x_snc_createnotes_note');
+	
+	if(input && input.noteID) {
+		//Note was updated so get only single note record to update in list
+		_gr.get(input.noteID);
+	}
+	else {
+		//Otherwise get all notes for current user
+		_gr.addQuery('user', gs.getUser().getID());
+		
+		//Set sort order
+		if(input && input.sort_order) {
+			switch(input.sort_order) {
+				case 'ASC':		_gr.orderBy('sys_created_on');			break;
+				case 'DESC':	_gr.orderByDesc('sys_created_on');	break;
+			}
+		}
+		else {
+			_gr.orderBy('sys_created_on');
+		}
+	}
+	_gr.query();
+
+	while(_gr.next()) {
+		var _noteObj = {
+			'number':	_gr.number.toString(), 
+			'title':	_gr.title.toString(), 
+			'sys_id':	_gr.sys_id.toString(), 
+			'note':		_gr.note.substring(0, _maxLength)
+		};
+		data.notes.push(_noteObj);
+	}
+})();
+]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2018-02-18 16:48:10</sys_created_on>
+        <sys_customer_update>false</sys_customer_update>
+        <sys_id>aa4c7ea20fd8130075b80cbce1050e9f</sys_id>
+        <sys_mod_count>194</sys_mod_count>
+        <sys_name>Notes List</sys_name>
+        <sys_package display_value="CreateNotes" source="x_snc_createnotes">df5fd9a5090232007f44e1046c8ff69f</sys_package>
+        <sys_policy/>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="CreateNotes">df5fd9a5090232007f44e1046c8ff69f</sys_scope>
+        <sys_update_name>sp_widget_aa4c7ea20fd8130075b80cbce1050e9f</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2018-02-21 19:08:42</sys_updated_on>
+        <template><![CDATA[<div class="panel panel-default">
+  <div class="panel-heading clearfix">
+    <h3 class="panel-title pull-left">
+      ${Notes}<br/>
+      <span class="small"><b>{{data.header.owner_initials}}</b> ({{data.header.owner_name}} - {{data.header.owner_email}})</span>
+    </h3>
+  </div>
+  <div class="list-group">
+    <a id="{{note.sys_id}}" class="list-group-item hand" 
+       ng-repeat="note in data.notes" ng-click="c.selectItem(note.sys_id)">
+      <h4 class="list-group-item-heading">
+        [{{$index+1}}] {{note.title}} <span class="small">({{note.number}})</span>
+      </h4>
+      <p class="list-group-item-text">{{note.note}}</p>
+    </a>
+  </div>
+</div>
+<button ng-click="c.toggleSortOrder();">Sorting {{c.sort_order}}</button>
+]]></template>
+    </sp_widget>
+</record_update>
