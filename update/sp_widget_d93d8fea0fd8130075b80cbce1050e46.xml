@@ -99,8 +99,11 @@
 .fl { float:left; }
 .fr { float:right; }
 .inline { display:inline-block; }
-textarea#note-body { resize:vertical; }
-.bottom-panel { border-top:1px solid #ddd;padding-top:12px;margin:0 15px 15px 15px; }</css>
+textarea#note-body { min-height:345px; resize:vertical; }
+.bottom-panel { border-top:1px solid #ddd;padding-top:12px;margin:0 15px 15px 15px; }
+.view-area { width:847px;height:578px }
+.view-area-inner { border:1px solid #d8d8d8; height:538px; background-color: #f5f5f5; margin:20px; padding:200px 50px; }
+</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
         <description/>
@@ -173,7 +176,7 @@ textarea#note-body { resize:vertical; }
         <sys_created_on>2018-02-18 18:02:05</sys_created_on>
         <sys_customer_update>false</sys_customer_update>
         <sys_id>d93d8fea0fd8130075b80cbce1050e46</sys_id>
-        <sys_mod_count>166</sys_mod_count>
+        <sys_mod_count>195</sys_mod_count>
         <sys_name>Notes Body</sys_name>
         <sys_package display_value="CreateNotes" source="x_snc_createnotes">df5fd9a5090232007f44e1046c8ff69f</sys_package>
         <sys_policy/>
@@ -181,7 +184,7 @@ textarea#note-body { resize:vertical; }
         <sys_scope display_value="CreateNotes">df5fd9a5090232007f44e1046c8ff69f</sys_scope>
         <sys_update_name>sp_widget_d93d8fea0fd8130075b80cbce1050e46</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2018-02-23 01:49:19</sys_updated_on>
+        <sys_updated_on>2018-02-23 18:19:33</sys_updated_on>
         <template><![CDATA[
 <div class="panel panel-default" ng-show="c.data.noteID||c.data.newnote">
   <div class="panel-heading clearfix">
@@ -199,16 +202,20 @@ textarea#note-body { resize:vertical; }
     <div class="fl info">Note:</div>
     <textarea class="form-control" id="note-body" ng-model="c.data.note" ng-change="c.updateNote()" ng-model-options="{debounce:1000}" ></textarea>
   </div>
-  
+
   <div class="bottom-panel">
     <button ng-click="c.confirmDeleteNote()" class="btn btn-default" ng-show="!c.data.newnote">Delete Note</button>
     <button ng-click="c.createNote()" class="btn btn-default" ng-show="c.data.newnote">Create Note</button>
   </div>
-  
+
 </div>
-<div class="mt50 text-center text-uppercase font-weight-bold" ng-show="!c.data.noteID&&!c.data.newnote">
-  Note Viewer Area
+<div class="panel panel-default view-area" ng-show="!c.data.noteID&&!c.data.newnote">
+  <div class="view-area-inner">
+    <div class="text-center text-uppercase font-weight-bold">
+      <h1>Note Viewer</h1>
+    </div>
+  </div>
 </div>
-  ]]></template>
+]]></template>
     </sp_widget>
 </record_update>
