@@ -6,6 +6,54 @@
 	/* widget controller */
 	var c = this;
 
+	c.updateNote = function() {
+		//Note changed - Update note and then update list
+		if(!c.data.newnote) {
+			c.server.get({
+				action:			'updateNote',
+				noteID:			c.data.noteID,
+				noteTitle:	c.data.title,
+				noteBody:		c.data.note
+			}).then(function(){
+				//Since we updated a note, let's inform the list to reflect change in the single note
+				$rootScope.$emit('updateList', {'noteID': c.data.noteID});
+			});
+		}
+	}
+
+	c.createNote = function() {
+		//Create new note, update note details and reload list
+		c.data.noteID = null;
+		if(c.data.title && c.data.note) {
+			c.server.get({
+				action:	'createNote',
+				title:	c.data.title,
+				note:		c.data.note
+			}).then(function(r){
+				//returned from ajax call creating new note so invoke list widget to reload
+				if(r.data.note.noteID) {
+					c.data.noteID		= r.data.note.noteID; //displayed at top of body
+					c.data.number		= r.data.note.number; //displayed at top of body
+					c.data.newnote	= false;
+					$rootScope.$emit('updateList', {});
+					spUtil.addTrivialMessage('Successfully created new Note');
+				}
+				else {
+					spUtil.addErrorMessage('Error: Unable to create Note!');					
+				}
+			});
+		}
+		else {
+			spUtil.addErrorMessage('Please enter values for both Title and Note');			
+		}
+	}
+
+	c.closeNote = function(){
+		//Close/Cancel note body
+		c.data.noteID		= null;
+		c.data.newnote	= false;
+	}
+
 	//Event handler emitted from list widget when user clicked on note in list
 	$rootScope.$on('selectNote', function(event, data){
 		c.data.newnote = false;
@@ -48,51 +96,6 @@
 			});
 		})
 	}	
-	//Note changed - Update note and then update list
-	c.updateNote = function() {
-		if(!c.data.newnote) {
-			c.server.get({
-				action:			'updateNote',
-				noteID:			c.data.noteID,
-				noteTitle:	c.data.title,
-				noteBody:		c.data.note
-			}).then(function(){
-				//Since we updated a note, let's inform the list to reflect change in the single note
-				$rootScope.$emit('updateList', {'noteID': c.data.noteID});
-			});
-		}
-	}
-	//Create new note, update note details and reload list
-	c.createNote = function() {
-		c.data.noteID = null;
-		if(c.data.title && c.data.note) {
-			c.server.get({
-				action:	'createNote',
-				title:	c.data.title,
-				note:		c.data.note
-			}).then(function(r){
-				//returned from ajax call creating new note so invoke list widget to reload
-				if(r.data.note.noteID) {
-					c.data.noteID		= r.data.note.noteID; //displayed at top of body
-					c.data.number		= r.data.note.number; //displayed at top of body
-					c.data.newnote	= false;
-					$rootScope.$emit('updateList', {});
-					spUtil.addTrivialMessage('Successfully created new Note');
-				}
-				else {
-					spUtil.addErrorMessage('Error: Unable to create Note!');					
-				}
-			});
-		}
-		else {
-			spUtil.addErrorMessage('Please enter values for both Title and Note');			
-		}
-	}
-	c.closeNote = function(){
-		//Close/Cancel note body
-		c.data.noteID		= null;
-		c.data.newnote	= false;
-	}
 }
 ]]></client_script>
         <controller_as>c</controller_as>
@@ -178,7 +181,7 @@ textarea#note-body { min-height:411px; resize:vertical; }
         <sys_created_on>2018-02-18 18:02:05</sys_created_on>
         <sys_customer_update>false</sys_customer_update>
         <sys_id>d93d8fea0fd8130075b80cbce1050e46</sys_id>
-        <sys_mod_count>239</sys_mod_count>
+        <sys_mod_count>240</sys_mod_count>
         <sys_name>Notes Body</sys_name>
         <sys_package display_value="CreateNotes" source="x_snc_createnotes">df5fd9a5090232007f44e1046c8ff69f</sys_package>
         <sys_policy/>
@@ -186,7 +189,7 @@ textarea#note-body { min-height:411px; resize:vertical; }
         <sys_scope display_value="CreateNotes">df5fd9a5090232007f44e1046c8ff69f</sys_scope>
         <sys_update_name>sp_widget_d93d8fea0fd8130075b80cbce1050e46</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2018-02-23 20:55:55</sys_updated_on>
+        <sys_updated_on>2018-02-23 21:07:28</sys_updated_on>
         <template><![CDATA[<div class="body-container">
   <div class="panel panel-default" ng-show="c.data.noteID||c.data.newnote">
     <div class="panel-heading clearfix">
