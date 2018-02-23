@@ -12,7 +12,7 @@ SarUtil.getUserInitials = function(pUserID) {
 	if(pUserID) {
 		var _gr = new GlideRecord('sys_user');
 		_gr.get(pUserID);
-		return (_gr.getRowCount()) ? (_gr.first_name.substr(0, 1).toUpperCase() + _gr.last_name.substr(0, 1).toUpperCase()) : false;
+		return (_gr.getRowCount()) ? (_gr.first_name.substr(0, 1) + _gr.last_name.substr(0, 1)).toUpperCase() : false;
 	}
 	return false;
 };
@@ -22,7 +22,7 @@ SarUtil.getUserInitials = function(pUserID) {
         <sys_created_on>2018-02-21 16:21:16</sys_created_on>
         <sys_customer_update>false</sys_customer_update>
         <sys_id>dce15ea70f50130075b80cbce1050ef3</sys_id>
-        <sys_mod_count>15</sys_mod_count>
+        <sys_mod_count>16</sys_mod_count>
         <sys_name>SarUtil</sys_name>
         <sys_package display_value="CreateNotes" source="x_snc_createnotes">df5fd9a5090232007f44e1046c8ff69f</sys_package>
         <sys_policy>read</sys_policy>
@@ -30,6 +30,6 @@ SarUtil.getUserInitials = function(pUserID) {
         <sys_scope display_value="CreateNotes">df5fd9a5090232007f44e1046c8ff69f</sys_scope>
         <sys_update_name>sys_script_include_dce15ea70f50130075b80cbce1050ef3</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2018-02-21 18:25:21</sys_updated_on>
+        <sys_updated_on>2018-02-21 19:53:10</sys_updated_on>
     </sys_script_include>
 </record_update>

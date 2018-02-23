@@ -7,10 +7,8 @@
 	var c					= this;
 	c.sort_order	= 'ASC';
 
-	//function called when user clicks on note in list
 	c.selectItem = function(pNoteID) {
-		//var _id = c.data.notes[pIndex].sys_id;
-		console.log('retrieve: ' + pNoteID);
+		//user clicked on note in list
 		$rootScope.noteID = pNoteID;
 		$rootScope.$emit('selectNote', null);
 	}
@@ -24,7 +22,6 @@
 			'noteID':			_noteID
 		}).then(function(r){
 			//Back from ajax call
-
 			if(_noteID) {
 				for(var _i in c.data.notes) {
 					//loop through array of notes on controller and find the element needed to be updated
@@ -33,17 +30,20 @@
 						c.data.notes[_i].note		= r.data.notes[0].note;
 					}
 				}	
-
 			}
 			else {
-				//User clicked sort button so update all notes in list
+				//Reload notes array displayed in list
+				c.data.notes = [];
 				for(var _j in r.data.notes) {
-					c.data.notes[_j].sys_id	= r.data.notes[_j].sys_id;
-					c.data.notes[_j].number	= r.data.notes[_j].number;
-					c.data.notes[_j].title	= r.data.notes[_j].title;
-					c.data.notes[_j].note		= r.data.notes[_j].note;
+					c.data.notes.push({
+						'sys_id':	r.data.notes[_j].sys_id,
+						'number':	r.data.notes[_j].number,
+						'title':	r.data.notes[_j].title,
+						'note':		r.data.notes[_j].note
+					});
 				}
 			}
+			c.data.header.rowCount = c.data.notes.length;
 		});
 	});
 
@@ -51,12 +51,22 @@
 		c.sort_order = (c.sort_order == 'ASC') ? 'DESC' : 'ASC';
 		$rootScope.$emit('updateList', null);
 	}	
+	c.createNote = function() {
+		$rootScope.$emit('createNote', null);
+	}
 }
 ]]></client_script>
         <controller_as>c</controller_as>
         <css>.hand { cursor:pointer; } 
 .small { font-size:12px; }
-</css>
+.med { font-size:16px; }
+.gray { color: #ccc; }
+.mt5 { margin-top:5px; }
+button { min-width:80px; }
+.l { text-align:left; }
+.r { text-align:right; }
+.button-panel { width:263px; }
+.scroller { max-height: 522px; overflow-y:scroll; }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
         <description/>
@@ -73,25 +83,25 @@
         <script><![CDATA[(function() {
 	/* populate the 'data' object */
 	/* e.g., data.table = $sp.getValue('table'); */
-	
+
 	//Get email of current user
 	var _gr = new GlideRecord('sys_user');
-		_gr.get(gs.getUserID());
-	
-  //set header variables
+	_gr.get(gs.getUserID());
+
+	//set header variables
 	data.header = { 
 		'owner_name':			gs.getUser().getDisplayName(),
 		'owner_email':		_gr.email.toString(),
 		'owner_initials':	SarUtil.getUserInitials(gs.getUserID())
 	};
-	
+
 	//Build note array of individual note objects
 	data.notes			= [];
 	var _maxLength	= 30;
 
 	//Get notes belonging to current user
 	_gr = new GlideRecord('x_snc_createnotes_note');
-	
+
 	if(input && input.noteID) {
 		//Note was updated so get only single note record to update in list
 		_gr.get(input.noteID);
@@ -99,7 +109,7 @@
 	else {
 		//Otherwise get all notes for current user
 		_gr.addQuery('user', gs.getUser().getID());
-		
+
 		//Set sort order
 		if(input && input.sort_order) {
 			switch(input.sort_order) {
@@ -112,6 +122,7 @@
 		}
 	}
 	_gr.query();
+	data.header.rowCount = _gr.getRowCount();
 
 	while(_gr.next()) {
 		var _noteObj = {
@@ -130,7 +141,7 @@
         <sys_created_on>2018-02-18 16:48:10</sys_created_on>
         <sys_customer_update>false</sys_customer_update>
         <sys_id>aa4c7ea20fd8130075b80cbce1050e9f</sys_id>
-        <sys_mod_count>194</sys_mod_count>
+        <sys_mod_count>259</sys_mod_count>
         <sys_name>Notes List</sys_name>
         <sys_package display_value="CreateNotes" source="x_snc_createnotes">df5fd9a5090232007f44e1046c8ff69f</sys_package>
         <sys_policy/>
@@ -138,25 +149,35 @@
         <sys_scope display_value="CreateNotes">df5fd9a5090232007f44e1046c8ff69f</sys_scope>
         <sys_update_name>sp_widget_aa4c7ea20fd8130075b80cbce1050e9f</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2018-02-21 19:08:42</sys_updated_on>
+        <sys_updated_on>2018-02-23 01:47:03</sys_updated_on>
         <template><![CDATA[<div class="panel panel-default">
   <div class="panel-heading clearfix">
     <h3 class="panel-title pull-left">
-      ${Notes}<br/>
+      {{data.header.rowCount}} ${Notes}<br/>
       <span class="small"><b>{{data.header.owner_initials}}</b> ({{data.header.owner_name}} - {{data.header.owner_email}})</span>
     </h3>
   </div>
-  <div class="list-group">
-    <a id="{{note.sys_id}}" class="list-group-item hand" 
-       ng-repeat="note in data.notes" ng-click="c.selectItem(note.sys_id)">
-      <h4 class="list-group-item-heading">
-        [{{$index+1}}] {{note.title}} <span class="small">({{note.number}})</span>
-      </h4>
-      <p class="list-group-item-text">{{note.note}}</p>
-    </a>
+  <div class="scroller">
+    <div class="list-group">
+      <a id="{{note.sys_id}}" class="list-group-item hand" 
+         ng-repeat="note in data.notes" ng-click="c.selectItem(note.sys_id)">
+        <h4 class="list-group-item-heading">
+          <span class="small gray align-middle">{{("000" + ($index+1)).slice(-3)}}) ({{note.number}})</span>
+          <div class="mt5">{{note.title}}</div>
+        </h4>
+        <p class="list-group-item-text">{{note.note}}</p>
+      </a>
+    </div>
   </div>
 </div>
-<button ng-click="c.toggleSortOrder();">Sorting {{c.sort_order}}</button>
+<div>
+  <table class="button-panel">
+    <tr>
+      <td class="l"><button ng-click="c.createNote()" class="btn btn-default">New Note</button></td>
+      <td class="r"><button ng-click="c.toggleSortOrder();" class="btn btn-default">Sorting {{c.sort_order}}</button></td>
+    </tr>
+  </table>
+</div>
 ]]></template>
     </sp_widget>
 </record_update>

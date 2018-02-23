@@ -2,25 +2,13 @@
 <record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[function() {
-  /* widget controller */
-  var c = this;
-	
-	//function to update note
-	c.updateNote = function() {
-		c.server.get({
-			action:			'updateNote',
-			noteID:			c.data.noteID,
-			noteTitle:	c.data.title,
-			noteBody:		c.data.note
-		}).then(function(){
-			//Since we updated a note, let's inform the list to reflect change in the single note
-			$rootScope.$emit('updateList', {'noteID': c.data.noteID});
-		});
-	}
-	
+        <client_script><![CDATA[function(spUtil, spModal) {
+	/* widget controller */
+	var c = this;
+
 	//Event handler emitted from list widget when user clicked on note in list
 	$rootScope.$on('selectNote', function(event, data){
+		c.data.newnote = false;
 		c.server.get({
 			//User clicked on a note in list so execute ajax call to server to retrieve note from database
 			action: 'getNote',
@@ -33,16 +21,86 @@
 			c.data.note		= r.data.note.note;
 		});
 	});
+
+	//Event handler emitted from list widget when user clicked on New Note button
+	$rootScope.$on('createNote', function(event, data){
+		c.data.newnote = true;
+		c.data.title = c.data.note = null;
+		console.log('setting focus');
+		$('#note-title').focus();
+	});
+
+	c.confirmDeleteNote = function() {
+		spModal.confirm("Are you sure you want to delete this Note?<br/><br/><b>" + c.data.title + "</b><br/>" + c.data.note).then(function(confirmed) {
+			console.log('delete now: ' + c.data.noteID);
+
+			c.server.get({
+				action:			'deleteNote',
+				noteID:			c.data.noteID
+			}).then(function(r){
+				//returned from ajax call creating new note so invoke list widget to reload
+				if(r.data.wasDeleted) {
+					c.data.noteID = null;
+					spUtil.addInfoMessage('Successfully deleted Note');
+					$rootScope.$emit('updateList', {});
+				}
+				else {
+					spUtil.addErrorMessage('Error: Unable to delete Note!');			
+				}
+			});
+		})
+	}	
+
+	c.updateNote = function() {
+		if(!c.data.newnote) {
+			c.server.get({
+				action:			'updateNote',
+				noteID:			c.data.noteID,
+				noteTitle:	c.data.title,
+				noteBody:		c.data.note
+			}).then(function(){
+				//Since we updated a note, let's inform the list to reflect change in the single note
+				$rootScope.$emit('updateList', {'noteID': c.data.noteID});
+			});
+		}
+	}
+
+	c.createNote = function() {
+		c.data.noteID = null;
+
+		if(c.data.title && c.data.note) {
+			c.server.get({
+				action:	'createNote',
+				title:	c.data.title,
+				note:		c.data.note
+			}).then(function(r){
+				//returned from ajax call creating new note so invoke list widget to reload
+
+				console.log('back from create: ' + r.data.note.noteID + ' - ' + r.data.note.number);
+
+				c.data.noteID		= r.data.note.noteID;
+				c.data.number		= r.data.note.number;
+				c.data.newnote	= false;
+				$rootScope.$emit('updateList', {});
+				spUtil.addTrivialMessage('Created new Note');
+			});
+		}
+		else {
+			spUtil.addErrorMessage('Please enter values for both Title and Note');			
+		}
+	}
 }
 ]]></client_script>
         <controller_as>c</controller_as>
         <css>.info { font-size:10px; }
 .mt50 { margin-top:50px; } 
 .mt10 { margin-top:10px; }
+.m15 { margin:15px; }
 .fl { float:left; }
 .fr { float:right; }
 .inline { display:inline-block; }
-</css>
+textarea#note-body { resize:vertical; }
+.bottom-panel { border-top:1px solid #ddd;padding-top:12px;margin:0 15px 15px 15px; }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
         <description/>
@@ -59,26 +117,53 @@
         <script><![CDATA[(function() {
 	/* populate the 'data' object */
 	/* e.g., data.table = $sp.getValue('table'); */
+	data.note = {};
 
-	if(input && input.noteID) {
-		var _gr = new GlideRecord('x_snc_createnotes_note');
-		
-		if(_gr.get(input.noteID)) {
-			if(input.action == 'getNote') {
-				data.note = {};
-				data.note.sys_id	= _gr.sys_id.toString();
-				data.note.number	= _gr.number.toString();
-				data.note.title		= _gr.title.toString();
-				data.note.note		= _gr.note.toString();
-				//$sp.getRecordValues(data.note, _gr, "title, note, sys_id");
-			}		
-			else if(input.action == 'updateNote') {
-				console.log('Ready to persist note: ' + input.noteID);
-				_gr.title	= input.noteTitle;
-				_gr.note	= input.noteBody;
-				_gr.update();
+	if(input) {
+		if(input.noteID) {
+			var _gr = new GlideRecord('x_snc_createnotes_note');
+
+			if(_gr.get(input.noteID)) {
+				if(input.action == 'getNote') {
+					data.note.sys_id	= _gr.sys_id.toString();
+					data.note.number	= _gr.number.toString();
+					data.note.title		= _gr.title.toString();
+					data.note.note		= _gr.note.toString();
+					//$sp.getRecordValues(data.note, _gr, "title, note, sys_id");
+				}		
+				else if(input.action == 'updateNote') {
+					console.log('Ready to persist note: ' + input.noteID);
+					_gr.title	= input.noteTitle;
+					_gr.note	= input.noteBody;
+					_gr.update();
+				}
 			}
 		}
+		else if(input.action == 'createNote') {
+			if(input.title && input.note) {
+				var _gr2 = new GlideRecord('x_snc_createnotes_note');
+				_gr2.initialize();
+				_gr2.user		= gs.getUserID();
+				_gr2.title	= input.title;
+				_gr2.note		= input.note;
+				data.note.noteID	= _gr2.insert();
+				
+				data.note.number	= _gr2.number.toString();
+				
+				//console.log('got this: ' + data.note.number);
+			}
+			else {
+				spUtil.addErrorMessage('ERROR: server-side unable to create note.');
+			}
+		}
+		if(input.noteID && input.action == 'deleteNote') {
+			var _gr3 = new GlideRecord('x_snc_createnotes_note');
+			_gr3.addQuery('sys_id', input.noteID);
+			_gr3.query();
+			_gr3.next();
+			data.wasDeleted = _gr3.deleteRecord();
+		}
+		
 	}
 })();
 ]]></script>
@@ -88,7 +173,7 @@
         <sys_created_on>2018-02-18 18:02:05</sys_created_on>
         <sys_customer_update>false</sys_customer_update>
         <sys_id>d93d8fea0fd8130075b80cbce1050e46</sys_id>
-        <sys_mod_count>85</sys_mod_count>
+        <sys_mod_count>166</sys_mod_count>
         <sys_name>Notes Body</sys_name>
         <sys_package display_value="CreateNotes" source="x_snc_createnotes">df5fd9a5090232007f44e1046c8ff69f</sys_package>
         <sys_policy/>
@@ -96,26 +181,33 @@
         <sys_scope display_value="CreateNotes">df5fd9a5090232007f44e1046c8ff69f</sys_scope>
         <sys_update_name>sp_widget_d93d8fea0fd8130075b80cbce1050e46</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2018-02-21 15:35:29</sys_updated_on>
+        <sys_updated_on>2018-02-23 01:49:19</sys_updated_on>
         <template><![CDATA[
-<div class="panel panel-default" ng-show="c.data.noteID">
+<div class="panel panel-default" ng-show="c.data.noteID||c.data.newnote">
   <div class="panel-heading clearfix">
     <div class="row">
       <div class="col-md-12">
-        <div class="inline fl info">(Number:  {{c.data.number}})</div>
-        <div class="inline fr info">(Note ID:  {{c.data.noteID}})</div>
-        <input class="form-control" id="note-title" ng-model="c.data.title" 
-               ng-change="c.updateNote()" ng-model-options="{debounce:1000}" />
+        <div><h3 ng-show="!c.data.newnote">View Note</h3><h3 ng-show="c.data.newnote">Create New Note</h3></div>
+        <div class="inline fl info" ng-show="!c.data.newnote">(Number:  {{c.data.number}})</div>
+        <div class="inline fr info" ng-show="!c.data.newnote">(Note ID:  {{c.data.noteID}})</div>
+        <div class="fl info" ng-show="c.data.newnote">Title:</div>
+        <input class="form-control" id="note-title" ng-model="c.data.title" ng-change="c.updateNote()" ng-model-options="{debounce:1000}" />
       </div>
     </div>
   </div>
   <div class="panel-body">
-    <textarea class="form-control" id="note-body" ng-model="c.data.note" 
-              ng-change="c.updateNote()" ng-model-options="{debounce:1000}" ></textarea>
+    <div class="fl info">Note:</div>
+    <textarea class="form-control" id="note-body" ng-model="c.data.note" ng-change="c.updateNote()" ng-model-options="{debounce:1000}" ></textarea>
   </div>
+  
+  <div class="bottom-panel">
+    <button ng-click="c.confirmDeleteNote()" class="btn btn-default" ng-show="!c.data.newnote">Delete Note</button>
+    <button ng-click="c.createNote()" class="btn btn-default" ng-show="c.data.newnote">Create Note</button>
+  </div>
+  
 </div>
-<div class="mt50 text-center text-uppercase font-weight-bold" ng-show="!c.data.noteID">
-  Note Shows Here
+<div class="mt50 text-center text-uppercase font-weight-bold" ng-show="!c.data.noteID&&!c.data.newnote">
+  Note Viewer Area
 </div>
   ]]></template>
     </sp_widget>
